@@ -1,30 +1,53 @@
-import { getLitConfig, type LitConfig } from '../config/lit';
-
-// Lit Protocol Client Setup
-// This will be implemented in Phase 3
+import { LitNodeClient } from '@lit-protocol/lit-node-client';
+import { LIT_NETWORK } from '@lit-protocol/constants';
 
 export class LitClient {
-  private config: LitConfig;
+  private client: LitNodeClient | null = null;
+  private isConnected = false;
 
   constructor() {
-    this.config = getLitConfig();
+    this.client = new LitNodeClient({
+      litNetwork: LIT_NETWORK.DatilDev,
+      debug: false
+    });
   }
 
-  async initialize() {
-    // TODO: Initialize Lit Node Client
-    console.log('Lit client initialization - to be implemented');
+  async connect(): Promise<void> {
+    if (!this.client) {
+      throw new Error('Lit client not initialized');
+    }
+
+    if (this.isConnected) {
+      return;
+    }
+
+    try {
+      await this.client.connect();
+      this.isConnected = true;
+      console.log('Connected to Lit Network');
+    } catch (error) {
+      console.error('Failed to connect to Lit Network:', error);
+      throw error;
+    }
   }
 
-  async createPKPWallet() {
-    // TODO: Implement PKP wallet creation
-    console.log('PKP wallet creation - to be implemented');
-    return null;
+  async disconnect(): Promise<void> {
+    if (this.client && this.isConnected) {
+      await this.client.disconnect();
+      this.isConnected = false;
+      console.log('Disconnected from Lit Network');
+    }
   }
 
-  async getSessionSignatures() {
-    // TODO: Implement session signature generation
-    console.log('Session signatures - to be implemented');
-    return null;
+  getClient(): LitNodeClient {
+    if (!this.client) {
+      throw new Error('Lit client not initialized');
+    }
+    return this.client;
+  }
+
+  isClientConnected(): boolean {
+    return this.isConnected;
   }
 }
 

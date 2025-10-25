@@ -1,0 +1,120 @@
+import { SessionSigs, AuthMethod, LitResourceAbilityRequest } from '@lit-protocol/types';
+import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers';
+import { litClient } from './client';
+
+export interface SessionConfig {
+  pkpPublicKey: string;
+  authMethods: AuthMethod[];
+  chain: string;
+  expiration?: Date;
+  resourceAbilities?: LitResourceAbilityRequest[];
+}
+
+export class SessionSignatureManager {
+  private sessions: Map<string, SessionSigs> = new Map();
+
+  async createSessionSigs(config: SessionConfig): Promise<SessionSigs> {
+    await litClient.connect();
+
+    const expiration = config.expiration || new Date(Date.now() + 3600000); // 1 hour default
+    
+    const resourceAbilities = config.resourceAbilities || [
+      {
+        resource: new LitActionResource('*'),
+        ability: LitAbility.PKPSigning
+      }
+    ];
+
+    const sessionSigs = await litClient.getClient().getPkpSessionSigs({
+      pkpPublicKey: config.pkpPublicKey,
+      authMethods: config.authMethods,
+      chain: config.chain,
+      expiration: expiration.toISOString(),
+      resourceAbilityRequests: resourceAbilities
+    });
+
+    const sessionKey = `${config.pkpPublicKey}_${config.chain}`;
+    this.sessions.set(sessionKey, sessionSigs);
+    
+    console.log('Session signatures created for PKP:', config.pkpPublicKey);
+    return sessionSigs;
+  }
+
+  getSessionSigs(pkpPublicKey: string, chain: string): SessionSigs | null {
+    const sessionKey = `${pkpPublicKey}_${chain}`;
+    return this.sessions.get(sessionKey) || null;
+  }
+
+  async refreshSessionSigs(config: SessionConfig): Promise<SessionSigs> {
+    const sessionKey = `${config.pkpPublicKey}_${config.chain}`;
+    this.sessions.delete(sessionKey);
+    return await this.createSessionSigs(config);
+  }
+
+  isSessionValid(pkpPublicKey: string, chain: string): boolean {
+    const sessionSigs = this.getSessionSigs(pkpPublicKey, chain);
+    if (!sessionSigs) return false;
+
+    // Check if any session signature is still valid
+    for (const [nodeAddress, sessionSig] of Object.entries(sessionSigs)) {
+      try {
+        const payload = JSON.parse(atob(sessionSig.sig.split('.')[1]));
+        const expiration = new Date(payload.exp * 1000);
+        if (expiration > new Date()) {
+          return true;
+        }
+      } catch (error) {
+        console.error('Error parsing session signature:', error);
+      }
+    }
+    
+    return false;
+  }
+
+  clearExpiredSessions(): void {
+    const expiredKeys: string[] = [];
+    
+    for (const [sessionKey, sessionSigs] of this.sessions.entries()) {
+      const [pkpPublicKey, chain] = sessionKey.split('_');
+      if (!this.isSessionValid(pkpPublicKey, chain)) {
+        expiredKeys.push(sessionKey);
+      }
+    }
+    
+    expiredKeys.forEach(key => {
+      this.sessions.delete(key);
+      console.log('Removed expired session:', key);
+    });
+  }
+
+  clearAllSessions(): void {
+    this.sessions.clear();
+    console.log('All sessions cleared');
+  }
+
+  getActiveSessions(): Array<{ pkpPublicKey: string; chain: string; expiration: Date }> {
+    const activeSessions: Array<{ pkpPublicKey: string; chain: string; expiration: Date }> = [];
+    
+    for (const [sessionKey, sessionSigs] of this.sessions.entries()) {
+      const [pkpPublicKey, chain] = sessionKey.split('_');
+      
+      if (this.isSessionValid(pkpPublicKey, chain)) {
+        // Get expiration from first valid signature
+        for (const [nodeAddress, sessionSig] of Object.entries(sessionSigs)) {
+          try {
+            const payload = JSON.parse(atob(sessionSig.sig.split('.')[1]));
+            const expiration = new Date(payload.exp * 1000);
+            activeSessions.push({ pkpPublicKey, chain, expiration });
+            break;
+          } catch (error) {
+            continue;
+          }
+        }
+      }
+    }
+    
+    return activeSessions;
+  }
+}
+
+export const sessionManager = new SessionSignatureManager();

@@ -5,9 +5,10 @@ import PortfolioOverview from './PortfolioOverview'
 import AgentControlPanel from './agent/ControlPanel'
 import BridgeDashboard from './BridgeDashboard'
 import { BalanceWidget, BridgeWidget, NexusWidgetProvider } from './nexus'
+import PKPAuth from './auth/PKPAuth'
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'bridge' | 'agent'>('portfolio')
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'bridge' | 'agent' | 'auth'>('portfolio')
 
   return (
     <NexusWidgetProvider>
@@ -44,6 +45,16 @@ export default function Dashboard() {
           >
             AI Agent
           </button>
+          <button
+            onClick={() => setActiveTab('auth')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'auth'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            PKP Auth
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -60,6 +71,7 @@ export default function Dashboard() {
           </div>
         )}
         {activeTab === 'agent' && <AgentControlPanel />}
+        {activeTab === 'auth' && <PKPAuth />}
       </div>
     </NexusWidgetProvider>
   )
