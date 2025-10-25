@@ -1,0 +1,19 @@
+name: WalletMonitor
+description: Cross-chain portfolio monitoring
+
+networks:
+  - id: 1
+    start_block: 18500000
+  - id: 137
+    start_block: 48000000
+  - id: 42161
+    start_block: 140000000
+
+contracts:
+  - name: USDC_Ethereum
+    abi_file_path: ./abis/erc20.json
+    address: 
+      - address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    handler: ./src/handlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 value)
