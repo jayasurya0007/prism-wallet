@@ -32,7 +32,12 @@ export default function BridgeDashboard() {
         setShowAllowanceModal(true)
         
         // Store callbacks
-        ;(request as any)._callbacks = { allow, deny }
+        // Store callbacks securely
+        Object.defineProperty(request, '_callbacks', {
+          value: { allow, deny },
+          enumerable: false,
+          writable: false
+        })
       }
     })
   })

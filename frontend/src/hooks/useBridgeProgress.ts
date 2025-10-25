@@ -49,6 +49,11 @@ export function useBridgeProgress(intentId?: string): UseBridgeProgressReturn {
         setIntent(targetIntent)
       }
       
+      // Validate intentId format before execution
+      if (!/^[a-zA-Z0-9_-]+$/.test(targetIntentId)) {
+        throw new Error('Invalid intent ID format')
+      }
+      
       await nexusBridge.executeBridge(targetIntentId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bridge execution failed')

@@ -19,24 +19,32 @@ export class PKPWalletManager {
   private activeWallet: PKPEthersWallet | null = null;
 
   async createWallet(config: PKPWalletConfig): Promise<PKPEthersWallet> {
-    await litClient.connect();
-    
-    // Use official PKPEthersWallet initialization from documentation
-    const wallet = new PKPEthersWallet({
-      litNodeClient: litClient.getClient(),
-      pkpPubKey: config.pkpPublicKey,
-      authMethods: config.authMethods,
-      rpc: config.rpc || 'https://eth.llamarpc.com'
-    });
+    if (!config.pkpPublicKey) {
+      throw new Error('PKP public key is required');
+    }
+    if (!config.authMethods || config.authMethods.length === 0) {
+      throw new Error('At least one auth method is required');
+    }
 
-    // Initialize wallet according to official docs
-    await wallet.init();
-    
-    this.wallets.set(config.pkpPublicKey, wallet);
-    this.activeWallet = wallet;
-    
-    console.log('PKP Wallet created with address:', wallet.address);
-    return wallet;
+    try {
+      await litClient.connect();
+      
+      const wallet = new PKPEthersWallet({
+        litNodeClient: litClient.getClient(),
+        pkpPubKey: config.pkpPublicKey,
+        authMethods: config.authMethods,
+        rpc: config.rpc || 'https://eth.llamarpc.com'
+      });
+
+      await wallet.init();
+      
+      this.wallets.set(config.pkpPublicKey, wallet);
+      this.activeWallet = wallet;
+      
+      return wallet;
+    } catch (error) {
+      throw new Error(`Failed to create PKP wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async getWallet(pkpPublicKey: string): Promise<PKPEthersWallet | null> {
@@ -57,6 +65,10 @@ export class PKPWalletManager {
   }
 
   async signMessage(message: string, pkpPublicKey?: string): Promise<string> {
+    if (!message) {
+      throw new Error('Message is required for signing');
+    }
+
     const wallet = pkpPublicKey ? 
       this.wallets.get(pkpPublicKey) : 
       this.activeWallet;
@@ -65,10 +77,18 @@ export class PKPWalletManager {
       throw new Error('No PKP wallet available');
     }
 
-    return await wallet.signMessage(message);
+    try {
+      return await wallet.signMessage(message);
+    } catch (error) {
+      throw new Error(`Failed to sign message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async signTransaction(transaction: any, pkpPublicKey?: string): Promise<string> {
+    if (!transaction) {
+      throw new Error('Transaction is required for signing');
+    }
+
     const wallet = pkpPublicKey ? 
       this.wallets.get(pkpPublicKey) : 
       this.activeWallet;
@@ -77,7 +97,11 @@ export class PKPWalletManager {
       throw new Error('No PKP wallet available');
     }
 
-    return await wallet.signTransaction(transaction);
+    try {
+      return await wallet.signTransaction(transaction);
+    } catch (error) {
+      throw new Error(`Failed to sign transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   getWalletInfo(pkpPublicKey?: string): PKPInfo | null {

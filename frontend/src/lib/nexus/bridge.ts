@@ -222,7 +222,13 @@ export class NexusBridge {
   private async executeBridgeTransaction(intent: BridgeIntent): Promise<string> {
     // Mock transaction execution
     await new Promise(resolve => setTimeout(resolve, 2000));
-    return `0x${Math.random().toString(16).substr(2, 64)}`;
+    
+    // Generate secure random hex string for transaction hash
+    const randomBytes = new Uint8Array(32);
+    crypto.getRandomValues(randomBytes);
+    const txHash = '0x' + Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    
+    return txHash;
   }
 
   private async waitForConfirmations(progress: BridgeProgress): Promise<void> {

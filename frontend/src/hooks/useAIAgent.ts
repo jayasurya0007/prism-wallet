@@ -33,7 +33,13 @@ interface UseAIAgentReturn {
   getHistory: () => Promise<AgentDecision[]>;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const getApiBase = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl || !/^https?:\/\//.test(apiUrl)) {
+    throw new Error('Invalid API URL configuration');
+  }
+  return apiUrl;
+};
 
 export function useAIAgent(): UseAIAgentReturn {
   const [status, setStatus] = useState<AgentStatus | null>(null);
@@ -53,7 +59,7 @@ export function useAIAgent(): UseAIAgentReturn {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE}/agent/start`, {
+      const response = await fetch(`${getApiBase()}/agent/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config })
@@ -78,7 +84,7 @@ export function useAIAgent(): UseAIAgentReturn {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE}/agent/stop`, {
+      const response = await fetch(`${getApiBase()}/agent/stop`, {
         method: 'POST'
       });
       
@@ -102,7 +108,7 @@ export function useAIAgent(): UseAIAgentReturn {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE}/agent/analyze`, {
+      const response = await fetch(`${getApiBase()}/agent/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(portfolioData)
@@ -128,7 +134,7 @@ export function useAIAgent(): UseAIAgentReturn {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE}/agent/config`, {
+      const response = await fetch(`${getApiBase()}/agent/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config })
@@ -153,7 +159,7 @@ export function useAIAgent(): UseAIAgentReturn {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE}/agent/refresh`, {
+      const response = await fetch(`${getApiBase()}/agent/refresh`, {
         method: 'POST'
       });
       
@@ -171,7 +177,7 @@ export function useAIAgent(): UseAIAgentReturn {
 
   const getHistory = useCallback(async (): Promise<AgentDecision[]> => {
     try {
-      const response = await fetch(`${API_BASE}/agent/history`);
+      const response = await fetch(`${getApiBase()}/agent/history`);
       const data = await response.json();
       
       if (!data.success) {

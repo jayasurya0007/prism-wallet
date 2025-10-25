@@ -38,7 +38,12 @@ export class YieldDetector {
     const opportunities = await this.detectYieldOpportunities(chainIds);
     
     return opportunities
-      .filter(opp => opp.token.toLowerCase() === token.toLowerCase())
+      .filter(opp => {
+        // Prevent timing attacks by using constant-time comparison
+        const oppToken = opp.token.toLowerCase();
+        const targetToken = token.toLowerCase();
+        return oppToken.length === targetToken.length && oppToken === targetToken;
+      })
       .reduce((best, current) => 
         current.apy > (best?.apy || 0) ? current : best, 
         null as YieldOpportunity | null

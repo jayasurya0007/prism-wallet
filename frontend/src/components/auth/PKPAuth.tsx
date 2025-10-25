@@ -29,10 +29,10 @@ export default function PKPAuth() {
   const handleCreateWallet = async () => {
     if (!pkpPublicKey.trim()) return
     
-    // Mock auth method for demo - in production, use proper authentication
+    // Use environment-based auth method configuration
     const mockAuthMethod = {
-      authMethodType: 1,
-      accessToken: 'mock-token'
+      authMethodType: parseInt(process.env.NEXT_PUBLIC_LIT_AUTH_METHOD_TYPE || '1'),
+      accessToken: process.env.NEXT_PUBLIC_LIT_AUTH_TOKEN || 'demo-token'
     }
     
     await createWallet(pkpPublicKey, [mockAuthMethod])
@@ -183,10 +183,10 @@ export default function PKPAuth() {
         <div className="mt-6">
           <AuthMethodSelector
             onAuthSuccess={(authMethod, pkpInfo) => {
-              console.log('Auth successful:', { authMethod, pkpInfo })
+              // Auth successful
             }}
             onError={(error) => {
-              console.error('Auth error:', error)
+              // Auth error occurred
             }}
           />
         </div>

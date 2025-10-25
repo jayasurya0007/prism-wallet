@@ -51,6 +51,11 @@ export class AutonomousSigner {
       let result;
       
       if (this.litActionConfig?.ipfsId) {
+        // Validate IPFS ID format
+        if (!/^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(this.litActionConfig.ipfsId)) {
+          throw new Error('Invalid IPFS ID format');
+        }
+        
         // Execute Lit Action from IPFS
         result = await litClient.getClient().executeJs({
           ipfsId: this.litActionConfig.ipfsId,
@@ -58,6 +63,13 @@ export class AutonomousSigner {
           jsParams: litActionParams
         });
       } else if (this.litActionConfig?.code) {
+        // Validate code contains only safe operations
+        if (this.litActionConfig.code.includes('eval(') || 
+            this.litActionConfig.code.includes('Function(') ||
+            this.litActionConfig.code.includes('require(')) {
+          throw new Error('Unsafe code operations detected');
+        }
+        
         // Execute inline Lit Action code
         result = await litClient.getClient().executeJs({
           code: this.litActionConfig.code,
@@ -68,10 +80,18 @@ export class AutonomousSigner {
         throw new Error('No Lit Action configured');
       }
 
+      // Validate response format before parsing
+      if (!result.response || typeof result.response !== 'string') {
+        throw new Error('Invalid response format from Lit Action');
+      }
+      
       const response = JSON.parse(result.response);
       
       if (!response.success) {
-        throw new Error(response.error);
+        // Sanitize error message to prevent code injection
+        const sanitizedError = typeof response.error === 'string' ? 
+          response.error.replace(/[<>"'&]/g, '') : 'Unknown error';
+        throw new Error(sanitizedError);
       }
 
       return {
@@ -115,7 +135,19 @@ export class AutonomousSigner {
           cooldownPeriod: 300
         };
 
-        const activePolicy = policy ? JSON.parse(policy) : defaultPolicy;
+        let activePolicy = defaultPolicy;
+        if (policy && typeof policy === 'string') {
+          try {
+            // Validate policy string before parsing
+            if (policy.length > 10000 || /[<>"'&]/.test(policy)) {
+              throw new Error('Invalid policy format');
+            }
+            activePolicy = JSON.parse(policy);
+          } catch (e) {
+            // Use default policy if parsing fails
+            activePolicy = defaultPolicy;
+          }
+        }
 
         try {
           const txData = JSON.parse(transactionData);

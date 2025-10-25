@@ -21,18 +21,22 @@ export async function handleTransfer(event: Transfer) {
       ...transfer,
       usdValue,
       flagged: true,
-      token: 'USDC'
+      token: process.env.DEFAULT_TOKEN || 'USDC'
     };
     
-    console.log(`AI Alert [high_value_transfer]:`, highValueTransfer);
+    console.log('AI Alert: High-value transfer detected');
   }
   
   // Update wallet activity metrics
-  console.log(`Wallet activity: ${from} -> ${to} on chain ${event.chainId}, value: $${usdValue}`);
+  console.log('Wallet activity recorded');
 }
 
 function calculateUSDValue(value: string, chainId: number): number {
   return parseFloat(value) / 1e6; // USDC 6 decimals
+}
+
+function getTokenSymbol(chainId: number): string {
+  return process.env.DEFAULT_TOKEN || 'USDC';
 }
 
 // Gas price monitoring handler
@@ -41,6 +45,6 @@ export async function handleBlock(event: any) {
   const gasPriceGwei = parseFloat(gasPrice) / 1e9;
   
   if (gasPriceGwei < 50) {
-    console.log(`AI Alert [optimal_gas]: Chain ${event.chainId} gas below 50 Gwei: ${gasPriceGwei}`);
+    console.log('AI Alert: Optimal gas conditions detected');
   }
 }

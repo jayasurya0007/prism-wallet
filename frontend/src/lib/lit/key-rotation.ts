@@ -71,7 +71,7 @@ export class KeyRotationManager {
         await this.revokeOldPermissions(pkpPublicKey);
       }
 
-      console.log(`Session keys rotated for PKP: ${pkpPublicKey}, reason: ${reason}`);
+      // Session keys rotated successfully
       return true;
 
     } catch (error) {

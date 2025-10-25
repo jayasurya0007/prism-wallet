@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "@eth-online/backend",
   "version": "1.0.0",
   "scripts": {
     "dev": "tsx watch index.ts",

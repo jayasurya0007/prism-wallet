@@ -33,10 +33,14 @@ export class LitAuth {
     ethAddress: string;
   }> {
     // Mock PKP creation for demo
+    const randomBytes = new Uint8Array(32);
+    crypto.getRandomValues(randomBytes);
+    const randomHex = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    
     const mockPKP = {
       tokenId: `mock-token-${Date.now()}`,
-      publicKey: `0x04${Math.random().toString(16).substr(2, 128)}`,
-      ethAddress: `0x${Math.random().toString(16).substr(2, 40)}`
+      publicKey: `0x04${randomHex.slice(0, 128)}`,
+      ethAddress: `0x${randomHex.slice(0, 40)}`
     };
 
     return mockPKP;
@@ -53,7 +57,7 @@ export class LitAuth {
     try {
       localStorage.setItem(`lit_auth_${provider}`, JSON.stringify(authMethod));
     } catch (error) {
-      console.warn('Failed to store auth method in localStorage:', error);
+      // Failed to store auth method in localStorage
     }
   }
 
@@ -68,7 +72,7 @@ export class LitAuth {
           this.authMethods.set(provider, authMethod);
         }
       } catch (error) {
-        console.warn(`Failed to load stored auth method for ${provider}:`, error);
+        // Failed to load stored auth method
       }
     });
   }

@@ -18,7 +18,12 @@ export class EnvioSubscriptionManager {
     const pollInterval = setInterval(async () => {
       try {
         // This would be replaced with actual WebSocket subscription in production
-        const response = await fetch(process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql', {
+        const endpoint = process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_ENDPOINT;
+        if (!endpoint || !/^https?:\/\//.test(endpoint)) {
+          throw new Error('Invalid GraphQL endpoint');
+        }
+        
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

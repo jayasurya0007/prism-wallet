@@ -28,7 +28,7 @@ export class ExecutionEngine {
   private executionHistory: Array<{ decision: AgentDecision; result: ExecutionResult; timestamp: Date }> = [];
 
   async simulateExecution(decision: AgentDecision): Promise<ExecutionPlan> {
-    console.log('Simulating execution for decision:', decision);
+    // Simulating execution for decision
 
     const steps: ExecutionStep[] = [];
     let estimatedGas = 0;
@@ -136,7 +136,7 @@ export class ExecutionEngine {
     this.isExecuting = true;
 
     try {
-      console.log('Executing decision:', decision);
+      // Executing decision
 
       // Simulate execution delay
       await new Promise(resolve => setTimeout(resolve, 2000));

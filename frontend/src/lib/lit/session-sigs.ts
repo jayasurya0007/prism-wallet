@@ -43,7 +43,7 @@ export class SessionSignatureManager {
     const sessionKey = `${config.pkpPublicKey}_${config.chain}`;
     this.sessions.set(sessionKey, sessionSigs);
     
-    console.log('Session signatures created for PKP:', config.pkpPublicKey);
+    // Session signatures created successfully
     return sessionSigs;
   }
 
@@ -71,7 +71,7 @@ export class SessionSignatureManager {
           return true;
         }
       } catch (error) {
-        console.error('Error parsing session signature:', error);
+        // Error parsing session signature
       }
     }
     
@@ -90,13 +90,13 @@ export class SessionSignatureManager {
     
     expiredKeys.forEach(key => {
       this.sessions.delete(key);
-      console.log('Removed expired session:', key);
+      // Expired session removed
     });
   }
 
   clearAllSessions(): void {
     this.sessions.clear();
-    console.log('All sessions cleared');
+    // All sessions cleared
   }
 
   getActiveSessions(): Array<{ pkpPublicKey: string; chain: string; expiration: Date }> {
