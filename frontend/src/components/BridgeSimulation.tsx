@@ -21,6 +21,23 @@ export default function BridgeSimulationComponent({ onExecute }: BridgeSimulatio
   const [error, setError] = useState<string | null>(null)
 
   const handleSimulate = async () => {
+    // Validate inputs before simulation
+    if (!params.amount || typeof params.amount !== 'string') {
+      setError('Please enter a valid amount')
+      return
+    }
+    
+    const numAmount = parseFloat(params.amount)
+    if (isNaN(numAmount) || numAmount <= 0 || numAmount > 1000000) {
+      setError('Amount must be a positive number less than 1,000,000')
+      return
+    }
+    
+    if (params.fromChain === params.toChain) {
+      setError('Source and destination chains must be different')
+      return
+    }
+
     setLoading(true)
     setError(null)
     
@@ -104,9 +121,18 @@ export default function BridgeSimulationComponent({ onExecute }: BridgeSimulatio
           <input
             type="number"
             value={params.amount}
-            onChange={(e) => setParams(prev => ({ ...prev, amount: e.target.value }))}
+            onChange={(e) => {
+              const value = e.target.value
+              // Only allow valid number input
+              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                setParams(prev => ({ ...prev, amount: value }))
+              }
+            }}
             className="w-full p-2 border border-gray-300 rounded-lg"
             placeholder="0.0"
+            min="0"
+            max="1000000"
+            step="0.01"
           />
         </div>
       </div>

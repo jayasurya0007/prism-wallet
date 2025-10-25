@@ -24,33 +24,146 @@ export class EnvioGraphQLClient {
   private endpoint: string;
 
   constructor() {
-    this.endpoint = process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql';
+    const endpoint = process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql';
+    
+    // Validate endpoint URL
+    if (!endpoint || typeof endpoint !== 'string') {
+      throw new Error('GraphQL endpoint is required');
+    }
+    
+    // Validate URL format and security
+    if (!/^https?:\/\/[a-zA-Z0-9.-]+(?:\:[0-9]+)?(?:\/[^\s]*)?$/.test(endpoint)) {
+      throw new Error('Invalid GraphQL endpoint format');
+    }
+    
+    this.endpoint = endpoint;
     this.client = new GraphQLClient(this.endpoint, {
       headers: {
         'Content-Type': 'application/json',
-      }
+        'User-Agent': 'EnvioClient/1.0'
+      },
+      // Security settings
+      timeout: 30000, // 30 second timeout
+      credentials: 'omit' // Don't send credentials
     });
   }
 
   // Query high-value transfers for AI agent monitoring
   async getHighValueTransfers(chainId?: number, limit: number = 100): Promise<EnvioQueryResponse<{ Transfer: Transfer[] }>> {
+    // Validate inputs
+    if (chainId !== undefined) {
+      if (!Number.isInteger(chainId) || chainId <= 0) {
+        throw new Error('Invalid chain ID');
+      }
+    }
+    
+    if (!Number.isInteger(limit) || limit <= 0 || limit > 1000) {
+      throw new Error('Limit must be between 1 and 1000');
+    }
+    
     const minAmount = (10000 * 1e6).toString(); // $10k in USDC
-    return await this.client.request(HIGH_VALUE_TRANSFERS, { chainId, minAmount, limit });
+    
+    try {
+      return await this.client.request(HIGH_VALUE_TRANSFERS, { 
+        chainId, 
+        minAmount, 
+        limit: Math.min(limit, 1000) // Cap at 1000
+      });
+    } catch (error) {
+      console.error('Failed to fetch high-value transfers - real Envio API required');
+      throw new Error('Envio GraphQL API unavailable. Please deploy real indexer.');
+    }
   }
 
   // Query wallet activity for portfolio analysis
   async getWalletActivity(address: string, chainIds: number[] = [1, 137, 42161]): Promise<EnvioQueryResponse<{ Transfer: Transfer[] }>> {
-    return await this.client.request(WALLET_ACTIVITY, { address, chainIds, limit: 1000 });
+    // Validate address
+    if (!address || typeof address !== 'string') {
+      throw new Error('Valid address is required');
+    }
+    
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      throw new Error('Invalid Ethereum address format');
+    }
+    
+    // Validate chain IDs
+    if (!Array.isArray(chainIds) || chainIds.length === 0) {
+      throw new Error('Valid chain IDs array is required');
+    }
+    
+    const validChainIds = chainIds.filter(id => 
+      Number.isInteger(id) && id > 0 && id <= 999999
+    ).slice(0, 10); // Limit to 10 chains
+    
+    if (validChainIds.length === 0) {
+      throw new Error('No valid chain IDs provided');
+    }
+    
+    try {
+      return await this.client.request(WALLET_ACTIVITY, { 
+        address: address.toLowerCase(), 
+        chainIds: validChainIds, 
+        limit: 1000 
+      });
+    } catch (error) {
+      console.error('Failed to fetch wallet activity - real Envio API required');
+      throw new Error('Envio GraphQL API unavailable. Please deploy real indexer.');
+    }
   }
 
   // Query recent transfers for real-time monitoring
   async getRecentTransfers(minutes: number = 60, chainIds: number[] = [1, 137, 42161]) {
+    // Validate minutes
+    if (!Number.isInteger(minutes) || minutes <= 0 || minutes > 1440) {
+      throw new Error('Minutes must be between 1 and 1440 (24 hours)');
+    }
+    
+    // Validate chain IDs
+    if (!Array.isArray(chainIds) || chainIds.length === 0) {
+      throw new Error('Valid chain IDs array is required');
+    }
+    
+    const validChainIds = chainIds.filter(id => 
+      Number.isInteger(id) && id > 0 && id <= 999999
+    ).slice(0, 10); // Limit to 10 chains
+    
+    if (validChainIds.length === 0) {
+      throw new Error('No valid chain IDs provided');
+    }
+    
     const timestampThreshold = Math.floor(Date.now() / 1000) - (minutes * 60);
-    return await this.client.request(RECENT_TRANSFERS, { timestamp: timestampThreshold, chainIds, limit: 500 });
+    
+    try {
+      return await this.client.request(RECENT_TRANSFERS, { 
+        timestamp: timestampThreshold, 
+        chainIds: validChainIds, 
+        limit: 500 
+      });
+    } catch (error) {
+      console.error('Failed to fetch recent transfers - real Envio API required');
+      throw new Error('Envio GraphQL API unavailable. Please deploy real indexer.');
+    }
   }
 
   // Query gas prices for optimization
   async getGasPrices(chainIds: number[], hours: number = 24) {
+    // Validate inputs
+    if (!Array.isArray(chainIds) || chainIds.length === 0) {
+      throw new Error('Valid chain IDs array is required');
+    }
+    
+    if (!Number.isInteger(hours) || hours <= 0 || hours > 168) {
+      throw new Error('Hours must be between 1 and 168 (1 week)');
+    }
+    
+    const validChainIds = chainIds.filter(id => 
+      Number.isInteger(id) && id > 0 && id <= 999999
+    ).slice(0, 10); // Limit to 10 chains
+    
+    if (validChainIds.length === 0) {
+      throw new Error('No valid chain IDs provided');
+    }
+    
     const timestampThreshold = Math.floor(Date.now() / 1000) - (hours * 3600);
     
     const query = `
@@ -72,11 +185,35 @@ export class EnvioGraphQLClient {
       }
     `;
 
-    return await this.client.request(query, { chainIds, timestamp: timestampThreshold });
+    try {
+      return await this.client.request(query, { 
+        chainIds: validChainIds, 
+        timestamp: timestampThreshold 
+      });
+    } catch (error) {
+      console.error('Failed to fetch gas prices');
+      throw new Error('Query failed');
+    }
   }
 
   // Query yield opportunities
   async getYieldOpportunities(chainIds?: number[]) {
+    // Validate chain IDs if provided
+    let validChainIds: number[] | undefined;
+    
+    if (chainIds) {
+      if (!Array.isArray(chainIds)) {
+        throw new Error('Chain IDs must be an array');
+      }
+      
+      validChainIds = chainIds.filter(id => 
+        Number.isInteger(id) && id > 0 && id <= 999999
+      ).slice(0, 10); // Limit to 10 chains
+      
+      if (validChainIds.length === 0) {
+        validChainIds = undefined;
+      }
+    }
     const query = `
       query GetYieldOpportunities($chainIds: [Int!]) {
         YieldOpportunity(
@@ -99,7 +236,12 @@ export class EnvioGraphQLClient {
       }
     `;
 
-    return await this.client.request(query, { chainIds });
+    try {
+      return await this.client.request(query, { chainIds: validChainIds });
+    } catch (error) {
+      console.error('Failed to fetch yield opportunities');
+      throw new Error('Query failed');
+    }
   }
 
   // Subscribe to real-time updates
@@ -140,8 +282,18 @@ export class EnvioGraphQLClient {
 
   // Get portfolio analytics
   async getPortfolioAnalytics(address: string) {
-    const transfers = await this.getWalletActivity(address);
-    const highValueTransfers = await this.getHighValueTransfers();
+    // Validate address
+    if (!address || typeof address !== 'string') {
+      throw new Error('Valid address is required');
+    }
+    
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      throw new Error('Invalid Ethereum address format');
+    }
+    
+    try {
+      const transfers = await this.getWalletActivity(address);
+      const highValueTransfers = await this.getHighValueTransfers();
     
     // Process analytics
     const analytics = {
@@ -154,15 +306,32 @@ export class EnvioGraphQLClient {
       ) || []
     };
 
-    return analytics;
+      return analytics;
+    } catch (error) {
+      console.error('Failed to get portfolio analytics');
+      throw new Error('Analytics query failed');
+    }
   }
 
   private calculateTotalVolume(transfers: any[]): Record<string, number> {
     const volume: Record<string, number> = {};
     
+    if (!Array.isArray(transfers)) {
+      return volume;
+    }
+    
     transfers.forEach(transfer => {
-      const key = `${transfer.chainId}-${transfer.token}`;
-      volume[key] = (volume[key] || 0) + parseFloat(transfer.amount);
+      // Validate transfer data
+      if (!transfer || typeof transfer !== 'object') return;
+      if (!Number.isInteger(transfer.chainId) || transfer.chainId <= 0) return;
+      if (typeof transfer.token !== 'string' || !transfer.token) return;
+      if (typeof transfer.amount !== 'string') return;
+      
+      const amount = parseFloat(transfer.amount);
+      if (isNaN(amount) || amount < 0) return;
+      
+      const key = `${transfer.chainId}-${transfer.token.substring(0, 50)}`;
+      volume[key] = (volume[key] || 0) + amount;
     });
 
     return volume;
@@ -171,7 +340,15 @@ export class EnvioGraphQLClient {
   private calculateChainDistribution(transfers: any[]): Record<number, number> {
     const distribution: Record<number, number> = {};
     
+    if (!Array.isArray(transfers)) {
+      return distribution;
+    }
+    
     transfers.forEach(transfer => {
+      // Validate transfer data
+      if (!transfer || typeof transfer !== 'object') return;
+      if (!Number.isInteger(transfer.chainId) || transfer.chainId <= 0) return;
+      
       distribution[transfer.chainId] = (distribution[transfer.chainId] || 0) + 1;
     });
 

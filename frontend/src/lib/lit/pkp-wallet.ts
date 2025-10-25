@@ -19,16 +19,23 @@ export class PKPWalletManager {
   private activeWallet: PKPEthersWallet | null = null;
 
   async createWallet(config: PKPWalletConfig): Promise<PKPEthersWallet> {
-    if (!config.pkpPublicKey) {
+    if (!config?.pkpPublicKey) {
       throw new Error('PKP public key is required');
     }
+    
+    if (!/^0x[a-fA-F0-9]{130}$/.test(config.pkpPublicKey)) {
+      throw new Error('Invalid PKP public key format');
+    }
+
     if (!config.authMethods || config.authMethods.length === 0) {
-      throw new Error('At least one auth method is required');
+      throw new Error('Authentication methods required for PKP wallet creation');
     }
 
     try {
       await litClient.connect();
       
+      // Official Lit Protocol PKPEthersWallet creation
+      // Reference: https://developer.litprotocol.com/user-wallets/pkps/overview
       const wallet = new PKPEthersWallet({
         litNodeClient: litClient.getClient(),
         pkpPubKey: config.pkpPublicKey,
@@ -48,6 +55,15 @@ export class PKPWalletManager {
   }
 
   async getWallet(pkpPublicKey: string): Promise<PKPEthersWallet | null> {
+    // Validate PKP public key
+    if (!pkpPublicKey || typeof pkpPublicKey !== 'string') {
+      return null;
+    }
+    
+    if (!/^0x[a-fA-F0-9]{130}$/.test(pkpPublicKey)) {
+      return null;
+    }
+    
     return this.wallets.get(pkpPublicKey) || null;
   }
 
@@ -56,6 +72,15 @@ export class PKPWalletManager {
   }
 
   setActiveWallet(pkpPublicKey: string): boolean {
+    // Validate PKP public key
+    if (!pkpPublicKey || typeof pkpPublicKey !== 'string') {
+      return false;
+    }
+    
+    if (!/^0x[a-fA-F0-9]{130}$/.test(pkpPublicKey)) {
+      return false;
+    }
+    
     const wallet = this.wallets.get(pkpPublicKey);
     if (wallet) {
       this.activeWallet = wallet;
@@ -65,8 +90,21 @@ export class PKPWalletManager {
   }
 
   async signMessage(message: string, pkpPublicKey?: string): Promise<string> {
-    if (!message) {
-      throw new Error('Message is required for signing');
+    // Validate message
+    if (!message || typeof message !== 'string') {
+      throw new Error('Valid message is required for signing');
+    }
+    
+    // Limit message length for security
+    if (message.length > 10000) {
+      throw new Error('Message too long');
+    }
+    
+    // Validate PKP public key if provided
+    if (pkpPublicKey) {
+      if (typeof pkpPublicKey !== 'string' || !/^0x[a-fA-F0-9]{130}$/.test(pkpPublicKey)) {
+        throw new Error('Invalid PKP public key format');
+      }
     }
 
     const wallet = pkpPublicKey ? 
@@ -85,8 +123,16 @@ export class PKPWalletManager {
   }
 
   async signTransaction(transaction: any, pkpPublicKey?: string): Promise<string> {
-    if (!transaction) {
-      throw new Error('Transaction is required for signing');
+    // Validate transaction
+    if (!transaction || typeof transaction !== 'object') {
+      throw new Error('Valid transaction object is required for signing');
+    }
+    
+    // Validate PKP public key if provided
+    if (pkpPublicKey) {
+      if (typeof pkpPublicKey !== 'string' || !/^0x[a-fA-F0-9]{130}$/.test(pkpPublicKey)) {
+        throw new Error('Invalid PKP public key format');
+      }
     }
 
     const wallet = pkpPublicKey ? 
@@ -129,6 +175,15 @@ export class PKPWalletManager {
   }
 
   async removeWallet(pkpPublicKey: string): Promise<boolean> {
+    // Validate PKP public key
+    if (!pkpPublicKey || typeof pkpPublicKey !== 'string') {
+      return false;
+    }
+    
+    if (!/^0x[a-fA-F0-9]{130}$/.test(pkpPublicKey)) {
+      return false;
+    }
+    
     const wallet = this.wallets.get(pkpPublicKey);
     if (wallet) {
       this.wallets.delete(pkpPublicKey);

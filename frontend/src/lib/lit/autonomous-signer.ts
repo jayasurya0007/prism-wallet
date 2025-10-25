@@ -17,7 +17,24 @@ export class AutonomousSigner {
   }
 
   async executeAutonomousSign(request: PKPSigningRequest, txData: TransactionData): Promise<PKPSigningResponse> {
-    // Validate policy first
+    // Validate inputs first
+    if (!request || typeof request !== 'object') {
+      throw new Error('Invalid signing request');
+    }
+    
+    if (!request.pkpPublicKey || typeof request.pkpPublicKey !== 'string') {
+      throw new Error('Valid PKP public key is required');
+    }
+    
+    if (!/^0x[a-fA-F0-9]{130}$/.test(request.pkpPublicKey)) {
+      throw new Error('Invalid PKP public key format');
+    }
+    
+    if (!txData || typeof txData !== 'object') {
+      throw new Error('Valid transaction data is required');
+    }
+    
+    // Validate policy
     const validation = policyEngine.validateTransaction(request.pkpPublicKey, txData);
     
     if (!validation.isValid) {
@@ -36,13 +53,28 @@ export class AutonomousSigner {
     this.signingHistory.set(request.pkpPublicKey, now);
     txData.lastSigningTime = this.signingHistory.get(request.pkpPublicKey);
 
-    // Prepare Lit Action parameters
+    // Prepare and validate Lit Action parameters
+    let transactionDataStr: string;
+    let policyStr: string;
+    
+    try {
+      transactionDataStr = JSON.stringify(txData);
+      policyStr = JSON.stringify(policyEngine.getPolicy(request.pkpPublicKey));
+    } catch (error) {
+      throw new Error('Failed to serialize transaction data or policy');
+    }
+    
+    // Validate serialized data size
+    if (transactionDataStr.length > 5000 || policyStr.length > 5000) {
+      throw new Error('Transaction data or policy too large');
+    }
+    
     const litActionParams = {
       toSign: request.toSign,
       publicKey: request.pkpPublicKey,
-      sigName: request.sigName,
-      transactionData: JSON.stringify(txData),
-      policy: JSON.stringify(policyEngine.getPolicy(request.pkpPublicKey))
+      sigName: request.sigName || 'agentSignature',
+      transactionData: transactionDataStr,
+      policy: policyStr
     };
 
     try {
@@ -63,41 +95,93 @@ export class AutonomousSigner {
           jsParams: litActionParams
         });
       } else if (this.litActionConfig?.code) {
-        // Validate code contains only safe operations
-        if (this.litActionConfig.code.includes('eval(') || 
-            this.litActionConfig.code.includes('Function(') ||
-            this.litActionConfig.code.includes('require(')) {
-          throw new Error('Unsafe code operations detected');
+        // Comprehensive code validation to prevent injection
+        const unsafePatterns = [
+          /eval\s*\(/,
+          /Function\s*\(/,
+          /require\s*\(/,
+          /import\s*\(/,
+          /process\./,
+          /global\./,
+          /window\./,
+          /document\./,
+          /__dirname/,
+          /__filename/,
+          /Buffer\./,
+          /fs\./,
+          /child_process/,
+          /exec\s*\(/,
+          /spawn\s*\(/,
+          /\$\{.*\}/,
+          /\[.*\]\s*\(/
+        ];
+        
+        const hasUnsafeCode = unsafePatterns.some(pattern => 
+          pattern.test(this.litActionConfig.code!)
+        );
+        
+        if (hasUnsafeCode) {
+          throw new Error('Code contains unsafe operations');
         }
         
-        // Execute inline Lit Action code
-        result = await litClient.getClient().executeJs({
-          code: this.litActionConfig.code,
-          sessionSigs,
-          jsParams: litActionParams
-        });
+        // Additional length and content validation
+        if (this.litActionConfig.code.length > 50000) {
+          throw new Error('Code too long');
+        }
+        
+        // For security, only allow pre-approved IPFS-based Lit Actions
+        // Dynamic code execution is disabled to prevent injection attacks
+        throw new Error('Dynamic code execution not allowed for security reasons. Use IPFS-based Lit Actions only.');
       } else {
         throw new Error('No Lit Action configured');
       }
 
-      // Validate response format before parsing
+      // Validate response format and content before parsing
       if (!result.response || typeof result.response !== 'string') {
         throw new Error('Invalid response format from Lit Action');
       }
       
-      const response = JSON.parse(result.response);
+      // Validate JSON string before parsing to prevent injection
+      if (result.response.length > 10000) {
+        throw new Error('Response too large');
+      }
+      
+      // Check for potential injection patterns in response
+      if (/<script|javascript:|data:|vbscript:/i.test(result.response)) {
+        throw new Error('Unsafe content in response');
+      }
+      
+      let response;
+      try {
+        response = JSON.parse(result.response);
+      } catch (parseError) {
+        throw new Error('Invalid JSON response from Lit Action');
+      }
       
       if (!response.success) {
-        // Sanitize error message to prevent code injection
-        const sanitizedError = typeof response.error === 'string' ? 
-          response.error.replace(/[<>"'&]/g, '') : 'Unknown error';
+        // Comprehensive error message sanitization
+        let sanitizedError = 'Unknown error';
+        if (typeof response.error === 'string') {
+          sanitizedError = response.error
+            .replace(/[<>"'&\\]/g, '')
+            .replace(/javascript:/gi, '')
+            .replace(/data:/gi, '')
+            .substring(0, 200); // Limit error message length
+        }
         throw new Error(sanitizedError);
       }
 
+      // Validate response signature format
+      if (!response.signature || typeof response.signature !== 'object') {
+        throw new Error('Invalid signature format in response');
+      }
+      
       return {
         signature: response.signature,
         publicKey: request.pkpPublicKey,
-        dataSigned: typeof request.toSign === 'string' ? request.toSign : Buffer.from(request.toSign).toString('hex')
+        dataSigned: typeof request.toSign === 'string' ? 
+          request.toSign.substring(0, 1000) : // Limit string length
+          Buffer.from(request.toSign).toString('hex')
       };
 
     } catch (error) {
@@ -122,7 +206,7 @@ export class AutonomousSigner {
   }
 
   setupDefaultLitAction(): void {
-    // Use the signing policy Lit Action code
+    // Use pre-validated signing policy Lit Action code
     const litActionCode = `
       const go = async () => {
         const { toSign, publicKey, sigName, transactionData, policy } = Lit.Actions.getParams();
@@ -138,9 +222,13 @@ export class AutonomousSigner {
         let activePolicy = defaultPolicy;
         if (policy && typeof policy === 'string') {
           try {
-            // Validate policy string before parsing
-            if (policy.length > 10000 || /[<>"'&]/.test(policy)) {
-              throw new Error('Invalid policy format');
+            // Comprehensive policy validation
+            if (policy.length > 5000) {
+              throw new Error('Policy too large');
+            }
+            
+            if (/<script|javascript:|data:|eval\(|Function\(/i.test(policy)) {
+              throw new Error('Unsafe policy content');
             }
             activePolicy = JSON.parse(policy);
           } catch (e) {
@@ -152,29 +240,35 @@ export class AutonomousSigner {
         try {
           const txData = JSON.parse(transactionData);
           
-          if (txData.amount && parseFloat(txData.amount) > activePolicy.maxAmount) {
+          // Validate amount safely
+          const amount = parseFloat(txData.amount);
+          if (txData.amount && !isNaN(amount) && amount > activePolicy.maxAmount) {
             return Lit.Actions.setResponse({ 
               response: JSON.stringify({ 
                 success: false,
-                error: \`Amount \${txData.amount} exceeds limit of \${activePolicy.maxAmount}\`
+                error: 'Amount exceeds policy limit'
               })
             });
           }
 
-          if (txData.chainId && !activePolicy.allowedChains.includes(txData.chainId)) {
+          // Validate chain ID safely
+          const chainId = parseInt(txData.chainId);
+          if (txData.chainId && !isNaN(chainId) && !activePolicy.allowedChains.includes(chainId)) {
             return Lit.Actions.setResponse({ 
               response: JSON.stringify({ 
                 success: false,
-                error: \`Chain \${txData.chainId} not allowed\`
+                error: 'Chain not allowed by policy'
               })
             });
           }
 
-          if (txData.gasPrice && txData.gasPrice > activePolicy.requireGasBelow * 1e9) {
+          // Validate gas price safely
+          const gasPrice = parseFloat(txData.gasPrice);
+          if (txData.gasPrice && !isNaN(gasPrice) && gasPrice > activePolicy.requireGasBelow * 1e9) {
             return Lit.Actions.setResponse({ 
               response: JSON.stringify({ 
                 success: false,
-                error: \`Gas price too high\`
+                error: 'Gas price exceeds policy limit'
               })
             });
           }
@@ -206,7 +300,10 @@ export class AutonomousSigner {
       go();
     `;
 
-    this.setLitAction({ code: litActionCode });
+    // For security, use IPFS-based Lit Action instead of dynamic code
+    // This prevents code injection vulnerabilities
+    console.warn('Dynamic Lit Action code disabled for security. Deploy to IPFS and use IPFS ID instead.');
+    // this.setLitAction({ code: litActionCode });
   }
 
   getSigningHistory(pkpPublicKey: string): number | null {

@@ -30,8 +30,21 @@ export default function BridgeWidget({
   const tokens = ['USDC', 'USDT', 'ETH']
 
   const handleSimulate = async () => {
-    if (!params.amount || parseFloat(params.amount) <= 0) {
+    // Validate amount
+    if (!params.amount || typeof params.amount !== 'string') {
       setError('Please enter a valid amount')
+      return
+    }
+    
+    const numAmount = parseFloat(params.amount)
+    if (isNaN(numAmount) || numAmount <= 0 || numAmount > 1000000) {
+      setError('Amount must be a positive number less than 1,000,000')
+      return
+    }
+    
+    // Validate chains are different
+    if (params.fromChain === params.toChain) {
+      setError('Source and destination chains must be different')
       return
     }
 
@@ -124,8 +137,17 @@ export default function BridgeWidget({
             <input
               type="number"
               value={params.amount}
-              onChange={(e) => setParams(prev => ({ ...prev, amount: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value
+                // Only allow valid number input
+                if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                  setParams(prev => ({ ...prev, amount: value }))
+                }
+              }}
               placeholder="0.0"
+              min="0"
+              max="1000000"
+              step="0.01"
               className="nexus-input"
             />
           </div>

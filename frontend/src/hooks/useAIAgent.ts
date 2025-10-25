@@ -35,9 +35,17 @@ interface UseAIAgentReturn {
 
 const getApiBase = () => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl || !/^https?:\/\//.test(apiUrl)) {
-    throw new Error('Invalid API URL configuration');
+  
+  // Validate API URL format and security
+  if (!apiUrl || typeof apiUrl !== 'string') {
+    throw new Error('API URL is required');
   }
+  
+  // Ensure HTTPS for production and validate URL format
+  if (!/^https:\/\/[a-zA-Z0-9.-]+(?:\:[0-9]+)?(?:\/[^\s]*)?$/.test(apiUrl)) {
+    throw new Error('Invalid or insecure API URL format');
+  }
+  
   return apiUrl;
 };
 
@@ -49,9 +57,24 @@ export function useAIAgent(): UseAIAgentReturn {
   const [error, setError] = useState<string | null>(null);
 
   const handleError = (err: any) => {
-    const message = err?.response?.data?.error || err?.message || 'An error occurred';
+    // Sanitize error message to prevent log injection
+    let message = 'An error occurred';
+    
+    if (err?.response?.data?.error && typeof err.response.data.error === 'string') {
+      message = err.response.data.error
+        .replace(/[\r\n\t]/g, ' ') // Remove line breaks
+        .replace(/[<>"'&\\]/g, '') // Remove potentially dangerous characters
+        .substring(0, 200); // Limit message length
+    } else if (err?.message && typeof err.message === 'string') {
+      message = err.message
+        .replace(/[\r\n\t]/g, ' ')
+        .replace(/[<>"'&\\]/g, '')
+        .substring(0, 200);
+    }
+    
     setError(message);
-    console.error('AI Agent error:', err);
+    // Log error without exposing sensitive information
+    console.error('AI Agent error occurred');
   };
 
   const startAgent = useCallback(async (config?: Partial<AgentConfig>) => {

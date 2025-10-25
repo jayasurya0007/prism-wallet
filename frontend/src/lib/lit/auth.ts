@@ -17,6 +17,16 @@ export class LitAuth {
   }
 
   async authenticateWithMock(provider: string): Promise<AuthResult> {
+    // Validate provider
+    if (!provider || typeof provider !== 'string') {
+      throw new Error('Valid provider is required');
+    }
+    
+    // Validate provider format
+    if (!/^[a-zA-Z0-9-_]+$/.test(provider) || provider.length > 50) {
+      throw new Error('Invalid provider format');
+    }
+    
     // Mock authentication for demo purposes
     const authMethod: AuthMethod = {
       authMethodType: 1,
@@ -32,6 +42,14 @@ export class LitAuth {
     publicKey: string;
     ethAddress: string;
   }> {
+    // Validate auth method
+    if (!authMethod || typeof authMethod !== 'object') {
+      throw new Error('Valid auth method is required');
+    }
+    
+    if (typeof authMethod.authMethodType !== 'number') {
+      throw new Error('Invalid auth method type');
+    }
     // Mock PKP creation for demo
     const randomBytes = new Uint8Array(32);
     crypto.getRandomValues(randomBytes);
@@ -47,15 +65,37 @@ export class LitAuth {
   }
 
   getStoredAuthMethod(provider: string): AuthMethod | null {
+    // Validate provider
+    if (!provider || typeof provider !== 'string') {
+      return null;
+    }
+    
+    if (!/^[a-zA-Z0-9-_]+$/.test(provider)) {
+      return null;
+    }
+    
     return this.authMethods.get(provider) || null;
   }
 
   private storeAuthMethod(provider: string, authMethod: AuthMethod): void {
+    // Validate inputs
+    if (!provider || typeof provider !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(provider)) {
+      throw new Error('Invalid provider');
+    }
+    
+    if (!authMethod || typeof authMethod !== 'object') {
+      throw new Error('Invalid auth method');
+    }
+    
     this.authMethods.set(provider, authMethod);
     
     // Store in localStorage for persistence
     try {
-      localStorage.setItem(`lit_auth_${provider}`, JSON.stringify(authMethod));
+      const serialized = JSON.stringify(authMethod);
+      if (serialized.length > 10000) {
+        throw new Error('Auth method data too large');
+      }
+      localStorage.setItem(`lit_auth_${provider}`, serialized);
     } catch (error) {
       // Failed to store auth method in localStorage
     }
@@ -78,6 +118,11 @@ export class LitAuth {
   }
 
   clearAuthMethod(provider: string): void {
+    // Validate provider
+    if (!provider || typeof provider !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(provider)) {
+      return;
+    }
+    
     this.authMethods.delete(provider);
     localStorage.removeItem(`lit_auth_${provider}`);
   }
@@ -96,6 +141,10 @@ export class LitAuth {
 
   isAuthenticated(provider?: string): boolean {
     if (provider) {
+      // Validate provider format
+      if (typeof provider !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(provider)) {
+        return false;
+      }
       return this.authMethods.has(provider);
     }
     return this.authMethods.size > 0;

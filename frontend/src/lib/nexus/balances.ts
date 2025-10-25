@@ -6,6 +6,17 @@ export class BalanceService {
   private readonly CACHE_TTL = 30000; // 30 seconds
 
   async getUnifiedBalances(address: string): Promise<AggregatedBalance[]> {
+    // Validate address format
+    if (!address || typeof address !== 'string') {
+      throw new Error('Valid address is required');
+    }
+    
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      throw new Error('Invalid Ethereum address format');
+    }
+    
+
+
     const cacheKey = `balances_${address}`;
     const cached = this.cache.get(cacheKey);
     
@@ -20,15 +31,27 @@ export class BalanceService {
   }
 
   async getBalancesByChain(address: string, chainId: number): Promise<TokenBalance[]> {
+    // Validate chain ID
+    if (!Number.isInteger(chainId) || chainId <= 0) {
+      throw new Error('Invalid chain ID');
+    }
+    
     return nexusClient.getBalances(address, [chainId]);
   }
 
   async getTotalPortfolioValue(address: string): Promise<number> {
+    // Validation is handled by getUnifiedBalances
     const aggregated = await this.getUnifiedBalances(address);
     return aggregated.reduce((total, balance) => total + balance.totalUsdValue, 0);
   }
 
   async getTopTokens(address: string, limit = 5): Promise<AggregatedBalance[]> {
+    // Validate limit
+    if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
+      throw new Error('Limit must be a positive integer between 1 and 100');
+    }
+    
+    // Validation for address is handled by getUnifiedBalances
     const aggregated = await this.getUnifiedBalances(address);
     return aggregated
       .sort((a, b) => b.totalUsdValue - a.totalUsdValue)
@@ -58,6 +81,8 @@ export class BalanceService {
 
     return Array.from(aggregated.values());
   }
+
+
 
   clearCache(): void {
     this.cache.clear();

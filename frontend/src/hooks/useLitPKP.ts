@@ -66,15 +66,18 @@ export function useLitPKP(): UseLitPKPReturn {
         authMethods
       });
       
-      // Create session signatures
-      await sessionManager.createSessionSigs({
-        pkpPublicKey,
-        authMethods,
-        chain: 'ethereum'
-      });
+      // Skip session signatures for existing PKPs
+      if (authMethods && authMethods.length > 0) {
+        await sessionManager.createSessionSigs({
+          pkpPublicKey,
+          authMethods,
+          chain: 'ethereum'
+        });
+      }
       
       updateWallets();
     } catch (err) {
+      console.error('PKP wallet creation failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to create wallet');
     } finally {
       setLoading(false);

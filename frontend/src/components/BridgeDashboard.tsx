@@ -31,13 +31,15 @@ export default function BridgeDashboard() {
         setCurrentAllowanceRequest(request)
         setShowAllowanceModal(true)
         
-        // Store callbacks
-        // Store callbacks securely
-        Object.defineProperty(request, '_callbacks', {
-          value: { allow, deny },
-          enumerable: false,
-          writable: false
-        })
+        // Store callbacks securely with proper validation
+        if (request && typeof request === 'object') {
+          Object.defineProperty(request, '_callbacks', {
+            value: { allow, deny },
+            enumerable: false,
+            writable: false,
+            configurable: false
+          })
+        }
       }
     })
   })
@@ -48,18 +50,30 @@ export default function BridgeDashboard() {
   }
 
   const handleAllowanceApproval = (type: 'min' | 'max' | 'exact') => {
-    if (currentAllowanceRequest && (currentAllowanceRequest as any)._callbacks) {
-      ;(currentAllowanceRequest as any)._callbacks.allow(type)
-      setShowAllowanceModal(false)
-      setCurrentAllowanceRequest(null)
+    // Validate allowance type
+    if (!['min', 'max', 'exact'].includes(type)) {
+      console.error('Invalid allowance type')
+      return
+    }
+
+    if (currentAllowanceRequest && '_callbacks' in currentAllowanceRequest) {
+      const callbacks = (currentAllowanceRequest as any)._callbacks
+      if (callbacks && typeof callbacks.allow === 'function') {
+        callbacks.allow(type)
+        setShowAllowanceModal(false)
+        setCurrentAllowanceRequest(null)
+      }
     }
   }
 
   const handleAllowanceDeny = () => {
-    if (currentAllowanceRequest && (currentAllowanceRequest as any)._callbacks) {
-      ;(currentAllowanceRequest as any)._callbacks.deny()
-      setShowAllowanceModal(false)
-      setCurrentAllowanceRequest(null)
+    if (currentAllowanceRequest && '_callbacks' in currentAllowanceRequest) {
+      const callbacks = (currentAllowanceRequest as any)._callbacks
+      if (callbacks && typeof callbacks.deny === 'function') {
+        callbacks.deny()
+        setShowAllowanceModal(false)
+        setCurrentAllowanceRequest(null)
+      }
     }
   }
 

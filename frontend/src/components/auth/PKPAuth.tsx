@@ -29,14 +29,9 @@ export default function PKPAuth() {
   const handleCreateWallet = async () => {
     if (!pkpPublicKey.trim()) return
     
-    // Use environment-based auth method configuration
-    const mockAuthMethod = {
-      authMethodType: parseInt(process.env.NEXT_PUBLIC_LIT_AUTH_METHOD_TYPE || '1'),
-      accessToken: process.env.NEXT_PUBLIC_LIT_AUTH_TOKEN || 'demo-token'
-    }
-    
-    await createWallet(pkpPublicKey, [mockAuthMethod])
-    setPkpPublicKey('')
+    // PKP wallet creation requires OAuth authentication flow
+    // Reference: https://developer.litprotocol.com/user-wallets/pkps/overview
+    alert('PKP wallet creation requires OAuth authentication. Use the PKP Test section above to validate your PKP.')
     setShowCreateForm(false)
   }
 
@@ -58,6 +53,13 @@ export default function PKPAuth() {
           <div className="text-red-800 text-sm">{error}</div>
         </div>
       )}
+
+      {/* Debug Info */}
+      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+        <div>PKP Key: {process.env.NEXT_PUBLIC_LIT_PKP_PUBLIC_KEY ? 'Found' : 'Not Found'}</div>
+        <div>Token ID: {process.env.NEXT_PUBLIC_LIT_TOKEN_ID ? 'Found' : 'Not Found'}</div>
+        <div>Network: {process.env.NEXT_PUBLIC_LIT_NETWORK || 'Not Set'}</div>
+      </div>
 
       {!isConnected ? (
         <div className="text-center py-8">
@@ -89,12 +91,26 @@ export default function PKPAuth() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-gray-900">PKP Wallets</h4>
-              <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                Add PKP
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    const envPkp = process.env.NEXT_PUBLIC_LIT_PKP_PUBLIC_KEY;
+                    if (envPkp) {
+                      setPkpPublicKey(envPkp);
+                      setShowCreateForm(true);
+                    }
+                  }}
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Load My PKP
+                </button>
+                <button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Add PKP
+                </button>
+              </div>
             </div>
 
             {showCreateForm && (
@@ -181,14 +197,7 @@ export default function PKPAuth() {
       {/* Auth Method Selector */}
       {isConnected && !activeWallet && (
         <div className="mt-6">
-          <AuthMethodSelector
-            onAuthSuccess={(authMethod, pkpInfo) => {
-              // Auth successful
-            }}
-            onError={(error) => {
-              // Auth error occurred
-            }}
-          />
+          <AuthMethodSelector />
         </div>
       )}
       

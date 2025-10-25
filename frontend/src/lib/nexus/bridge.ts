@@ -34,11 +34,39 @@ export class NexusBridge {
   }
 
   async simulateBridge(params: BridgeParams): Promise<BridgeSimulation> {
+    // Input validation
+    if (!params || typeof params !== 'object') {
+      throw new Error('Invalid bridge parameters');
+    }
+
     const { fromChain, toChain, token, amount } = params;
     
-    // Validate chains
+    // Validate chain IDs
+    if (!Number.isInteger(fromChain) || !Number.isInteger(toChain)) {
+      throw new Error('Chain IDs must be integers');
+    }
+
     if (!SUPPORTED_NETWORKS[fromChain] || !SUPPORTED_NETWORKS[toChain]) {
       throw new Error('Unsupported chain');
+    }
+
+    // Validate token format
+    if (!token || typeof token !== 'string') {
+      throw new Error('Token is required');
+    }
+
+    if (!/^(0x[a-fA-F0-9]{40}|[A-Z]{3,5})$/.test(token)) {
+      throw new Error('Invalid token format');
+    }
+
+    // Validate amount
+    if (!amount || typeof amount !== 'string') {
+      throw new Error('Amount is required');
+    }
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error('Amount must be a positive number');
     }
 
     try {
@@ -65,14 +93,15 @@ export class NexusBridge {
         recommendedMethod: simulation.recommendedMethod
       };
     } catch (error) {
-      console.error('Nexus bridge simulation failed:', error);
-      // Fallback to mock simulation
+      console.warn('Avail Nexus API unavailable, using fallback simulation');
+      
+      // Fallback simulation for demo purposes
       const baseAmount = parseFloat(amount);
       const directFee = baseAmount * 0.003;
       const chainAbstractionFee = baseAmount * 0.005;
       
       return {
-        id: `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `sim_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
         fromChain,
         toChain,
         token,
@@ -89,7 +118,7 @@ export class NexusBridge {
 
   async createIntent(simulation: BridgeSimulation): Promise<string> {
     const intent: BridgeIntent = {
-      id: `intent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `intent_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
       simulation,
       status: 'pending',
       createdAt: new Date()
@@ -220,10 +249,33 @@ export class NexusBridge {
   }
 
   private async executeBridgeTransaction(intent: BridgeIntent): Promise<string> {
-    // Mock transaction execution
+    // Validate intent parameters
+    if (!intent?.simulation) {
+      throw new Error('Invalid intent: missing simulation data');
+    }
+
+    const { fromChain, toChain, token, amount } = intent.simulation;
+    
+    // Validate chain IDs are numbers
+    if (!Number.isInteger(fromChain) || !Number.isInteger(toChain)) {
+      throw new Error('Invalid chain IDs');
+    }
+
+    // Validate token address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(token) && !/^[A-Z]{3,5}$/.test(token)) {
+      throw new Error('Invalid token format');
+    }
+
+    // Validate amount is positive number
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error('Invalid amount');
+    }
+
+    // Mock transaction execution with delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Generate secure random hex string for transaction hash
+    // Generate secure transaction hash
     const randomBytes = new Uint8Array(32);
     crypto.getRandomValues(randomBytes);
     const txHash = '0x' + Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');

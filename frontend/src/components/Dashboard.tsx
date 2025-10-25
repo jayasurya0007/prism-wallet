@@ -7,6 +7,7 @@ import BridgeDashboard from './BridgeDashboard'
 import { BalanceWidget, BridgeWidget, NexusWidgetProvider } from './nexus'
 import PKPAuth from './auth/PKPAuth'
 
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'portfolio' | 'bridge' | 'agent' | 'auth'>('portfolio')
 
@@ -60,7 +61,7 @@ export default function Dashboard() {
         {/* Tab Content */}
         {activeTab === 'portfolio' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BalanceWidget address="0x742d35Cc6634C0532925a3b8D4C9db96c4b4d8b" showAggregated />
+            <BalanceWidget address="0x742d35Cc6634C0532925a3b8D400e5e5c8C8b8b8" showAggregated />
             <PortfolioOverview />
           </div>
         )}

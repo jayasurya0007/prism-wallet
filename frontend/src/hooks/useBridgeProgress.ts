@@ -49,7 +49,15 @@ export function useBridgeProgress(intentId?: string): UseBridgeProgressReturn {
         setIntent(targetIntent)
       }
       
-      // Validate intentId format before execution
+      // Validate intentId format and length
+      if (!targetIntentId || typeof targetIntentId !== 'string') {
+        throw new Error('Intent ID is required and must be a string')
+      }
+      
+      if (targetIntentId.length > 100) {
+        throw new Error('Intent ID too long')
+      }
+      
       if (!/^[a-zA-Z0-9_-]+$/.test(targetIntentId)) {
         throw new Error('Invalid intent ID format')
       }
@@ -90,31 +98,45 @@ export function useBridgeIntentManager() {
         setCurrentIntent(intent)
         setShowApprovalModal(true)
         
-        // Store callbacks for later use
-        ;(intent as any)._callbacks = { allow, deny, refresh }
+        // Store callbacks securely using non-enumerable property
+        Object.defineProperty(intent, '_callbacks', {
+          value: { allow, deny, refresh },
+          enumerable: false,
+          writable: false,
+          configurable: false
+        })
       }
     })
   }, [])
 
   const approveIntent = useCallback(() => {
-    if (currentIntent && (currentIntent as any)._callbacks) {
-      ;(currentIntent as any)._callbacks.allow()
-      setShowApprovalModal(false)
-      setCurrentIntent(null)
+    if (currentIntent && '_callbacks' in currentIntent) {
+      const callbacks = (currentIntent as any)._callbacks
+      if (callbacks && typeof callbacks.allow === 'function') {
+        callbacks.allow()
+        setShowApprovalModal(false)
+        setCurrentIntent(null)
+      }
     }
   }, [currentIntent])
 
   const denyIntent = useCallback(() => {
-    if (currentIntent && (currentIntent as any)._callbacks) {
-      ;(currentIntent as any)._callbacks.deny()
-      setShowApprovalModal(false)
-      setCurrentIntent(null)
+    if (currentIntent && '_callbacks' in currentIntent) {
+      const callbacks = (currentIntent as any)._callbacks
+      if (callbacks && typeof callbacks.deny === 'function') {
+        callbacks.deny()
+        setShowApprovalModal(false)
+        setCurrentIntent(null)
+      }
     }
   }, [currentIntent])
 
   const refreshIntent = useCallback(() => {
-    if (currentIntent && (currentIntent as any)._callbacks) {
-      ;(currentIntent as any)._callbacks.refresh()
+    if (currentIntent && '_callbacks' in currentIntent) {
+      const callbacks = (currentIntent as any)._callbacks
+      if (callbacks && typeof callbacks.refresh === 'function') {
+        callbacks.refresh()
+      }
     }
   }, [currentIntent])
 
