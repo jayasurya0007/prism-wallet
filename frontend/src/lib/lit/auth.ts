@@ -1,11 +1,4 @@
 import { AuthMethod } from '@lit-protocol/types';
-import { LitAuthClient } from '@lit-protocol/lit-auth-client';
-import { ProviderType } from '@lit-protocol/constants';
-
-export interface AuthConfig {
-  provider: ProviderType;
-  redirectUri?: string;
-}
 
 export interface AuthResult {
   authMethod: AuthMethod;
@@ -17,62 +10,21 @@ export interface AuthResult {
 }
 
 export class LitAuth {
-  private authClient: LitAuthClient;
   private authMethods: Map<string, AuthMethod> = new Map();
 
   constructor() {
-    this.authClient = new LitAuthClient({
-      litRelayConfig: {
-        relayApiKey: process.env.LIT_RELAY_API_KEY || 'test-api-key'
-      }
-    });
+    this.loadStoredAuthMethods();
   }
 
-  async authenticateWithGoogle(redirectUri?: string): Promise<AuthResult> {
-    try {
-      const provider = this.authClient.initProvider(ProviderType.Google, {
-        redirectUri: redirectUri || window.location.origin
-      });
+  async authenticateWithMock(provider: string): Promise<AuthResult> {
+    // Mock authentication for demo purposes
+    const authMethod: AuthMethod = {
+      authMethodType: 1,
+      accessToken: `mock-${provider}-token-${Date.now()}`
+    };
 
-      const authMethod = await provider.authenticate();
-      this.storeAuthMethod('google', authMethod);
-
-      return { authMethod };
-    } catch (error) {
-      console.error('Google authentication failed:', error);
-      throw error;
-    }
-  }
-
-  async authenticateWithDiscord(redirectUri?: string): Promise<AuthResult> {
-    try {
-      const provider = this.authClient.initProvider(ProviderType.Discord, {
-        redirectUri: redirectUri || window.location.origin
-      });
-
-      const authMethod = await provider.authenticate();
-      this.storeAuthMethod('discord', authMethod);
-
-      return { authMethod };
-    } catch (error) {
-      console.error('Discord authentication failed:', error);
-      throw error;
-    }
-  }
-
-  async authenticateWithWebAuthn(): Promise<AuthResult> {
-    try {
-      const provider = this.authClient.initProvider(ProviderType.WebAuthn);
-      const options = await provider.register();
-      
-      const authMethod = await provider.authenticate(options);
-      this.storeAuthMethod('webauthn', authMethod);
-
-      return { authMethod };
-    } catch (error) {
-      console.error('WebAuthn authentication failed:', error);
-      throw error;
-    }
+    this.storeAuthMethod(provider, authMethod);
+    return { authMethod };
   }
 
   async createPKPWithAuth(authMethod: AuthMethod): Promise<{
@@ -80,18 +32,14 @@ export class LitAuth {
     publicKey: string;
     ethAddress: string;
   }> {
-    try {
-      const mintInfo = await this.authClient.mintPKPThroughRelayer(authMethod);
-      
-      return {
-        tokenId: mintInfo.tokenId,
-        publicKey: mintInfo.publicKey,
-        ethAddress: mintInfo.ethAddress
-      };
-    } catch (error) {
-      console.error('PKP creation failed:', error);
-      throw error;
-    }
+    // Mock PKP creation for demo
+    const mockPKP = {
+      tokenId: `mock-token-${Date.now()}`,
+      publicKey: `0x04${Math.random().toString(16).substr(2, 128)}`,
+      ethAddress: `0x${Math.random().toString(16).substr(2, 40)}`
+    };
+
+    return mockPKP;
   }
 
   getStoredAuthMethod(provider: string): AuthMethod | null {

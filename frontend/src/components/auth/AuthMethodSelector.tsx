@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { litAuth } from '../../lib/lit/auth'
-import { ProviderType } from '@lit-protocol/constants'
 
 interface AuthMethodSelectorProps {
   onAuthSuccess: (authMethod: any, pkpInfo?: any) => void
@@ -12,37 +11,13 @@ interface AuthMethodSelectorProps {
 export default function AuthMethodSelector({ onAuthSuccess, onError }: AuthMethodSelectorProps) {
   const [loading, setLoading] = useState<string | null>(null)
 
-  const handleGoogleAuth = async () => {
-    setLoading('google')
+  const handleAuth = async (provider: string) => {
+    setLoading(provider)
     try {
-      const result = await litAuth.authenticateWithGoogle()
+      const result = await litAuth.authenticateWithMock(provider)
       onAuthSuccess(result.authMethod, result.pkpInfo)
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Google authentication failed')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const handleDiscordAuth = async () => {
-    setLoading('discord')
-    try {
-      const result = await litAuth.authenticateWithDiscord()
-      onAuthSuccess(result.authMethod, result.pkpInfo)
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'Discord authentication failed')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const handleWebAuthnAuth = async () => {
-    setLoading('webauthn')
-    try {
-      const result = await litAuth.authenticateWithWebAuthn()
-      onAuthSuccess(result.authMethod, result.pkpInfo)
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'WebAuthn authentication failed')
+      onError(error instanceof Error ? error.message : `${provider} authentication failed`)
     } finally {
       setLoading(null)
     }
@@ -54,30 +29,30 @@ export default function AuthMethodSelector({ onAuthSuccess, onError }: AuthMetho
       
       <div className="grid grid-cols-1 gap-3">
         <button
-          onClick={handleGoogleAuth}
+          onClick={() => handleAuth('google')}
           disabled={loading === 'google'}
           className="flex items-center justify-center space-x-3 w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
         >
           <div className="w-5 h-5 bg-red-500 rounded"></div>
-          <span>{loading === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
+          <span>{loading === 'google' ? 'Connecting...' : 'Mock Google Auth'}</span>
         </button>
 
         <button
-          onClick={handleDiscordAuth}
+          onClick={() => handleAuth('discord')}
           disabled={loading === 'discord'}
           className="flex items-center justify-center space-x-3 w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
         >
           <div className="w-5 h-5 bg-indigo-500 rounded"></div>
-          <span>{loading === 'discord' ? 'Connecting...' : 'Continue with Discord'}</span>
+          <span>{loading === 'discord' ? 'Connecting...' : 'Mock Discord Auth'}</span>
         </button>
 
         <button
-          onClick={handleWebAuthnAuth}
+          onClick={() => handleAuth('webauthn')}
           disabled={loading === 'webauthn'}
           className="flex items-center justify-center space-x-3 w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
         >
           <div className="w-5 h-5 bg-green-500 rounded"></div>
-          <span>{loading === 'webauthn' ? 'Connecting...' : 'Continue with WebAuthn'}</span>
+          <span>{loading === 'webauthn' ? 'Connecting...' : 'Mock WebAuthn'}</span>
         </button>
       </div>
 

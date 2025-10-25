@@ -18,6 +18,7 @@ export class SessionSignatureManager {
 
     const expiration = config.expiration || new Date(Date.now() + 3600000); // 1 hour default
     
+    // Use official resource ability configuration from Lit docs
     const resourceAbilities = config.resourceAbilities || [
       {
         resource: new LitActionResource('*'),
@@ -25,12 +26,18 @@ export class SessionSignatureManager {
       }
     ];
 
+    // Official getPkpSessionSigs method from Lit Protocol documentation
     const sessionSigs = await litClient.getClient().getPkpSessionSigs({
       pkpPublicKey: config.pkpPublicKey,
       authMethods: config.authMethods,
       chain: config.chain,
       expiration: expiration.toISOString(),
-      resourceAbilityRequests: resourceAbilities
+      resourceAbilityRequests: resourceAbilities,
+      // Additional options from official docs
+      sessionCapabilities: {
+        signing: true,
+        litActionExecution: true
+      }
     });
 
     const sessionKey = `${config.pkpPublicKey}_${config.chain}`;

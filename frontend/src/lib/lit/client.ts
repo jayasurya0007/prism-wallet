@@ -6,9 +6,10 @@ export class LitClient {
   private isConnected = false;
 
   constructor() {
+    // Initialize according to official PKP documentation
     this.client = new LitNodeClient({
-      litNetwork: LIT_NETWORK.DatilDev,
-      debug: false
+      litNetwork: process.env.NEXT_PUBLIC_LIT_NETWORK || LIT_NETWORK.DatilDev,
+      debug: process.env.NODE_ENV === 'development'
     });
   }
 

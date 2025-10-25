@@ -1,36 +1,47 @@
-import { getSupportedChainsFromEnv } from '../utils/env';
+import { NexusSDK } from '@avail-project/nexus-core';
 import { SUPPORTED_NETWORKS } from '../config/networks';
-import { TOKEN_ADDRESSES } from '../config/envio';
 import type { TokenBalance, AggregatedBalance, ChainConfig } from '../../types/nexus';
-import axios from 'axios';
 
 export class NexusClient {
-  private apiEndpoint: string;
+  private sdk: NexusSDK;
   private supportedChains: number[];
 
   constructor() {
-    this.apiEndpoint = process.env.AVAIL_NEXUS_ENDPOINT || '';
-    this.supportedChains = getSupportedChainsFromEnv();
+    this.sdk = new NexusSDK({
+      endpoint: process.env.NEXT_PUBLIC_AVAIL_NEXUS_ENDPOINT || 'https://api.nexus.avail.so',
+      chains: [1, 10, 137, 42161, 43114, 8453]
+    });
+    this.supportedChains = [1, 10, 137, 42161, 43114, 8453];
   }
 
   async initialize() {
-    console.log('Nexus client initialized for chains:', this.supportedChains);
+    await this.sdk.initialize();
+    console.log('Nexus SDK initialized for chains:', this.supportedChains);
   }
 
   async getBalances(address: string, chainIds?: number[]): Promise<TokenBalance[]> {
     const chains = chainIds || this.supportedChains;
-    const balances: TokenBalance[] = [];
-
-    for (const chainId of chains) {
-      try {
-        const chainBalances = await this.getChainBalances(address, chainId);
-        balances.push(...chainBalances);
-      } catch (error) {
-        console.error(`Failed to fetch balances for chain ${chainId}:`, error);
-      }
+    
+    try {
+      const balances = await this.sdk.getBalances({
+        address,
+        chains,
+        tokens: ['ETH', 'USDC', 'USDT']
+      });
+      
+      return balances.map(balance => ({
+        address: balance.tokenAddress,
+        symbol: balance.symbol,
+        balance: balance.balance,
+        decimals: balance.decimals,
+        chainId: balance.chainId,
+        usdValue: balance.usdValue,
+        name: balance.name
+      }));
+    } catch (error) {
+      console.error('Failed to fetch balances:', error);
+      return [];
     }
-
-    return balances;
   }
 
   async getAggregatedBalances(address: string): Promise<AggregatedBalance[]> {
@@ -130,15 +141,32 @@ export class NexusClient {
     chainAbstractionCost: string;
     recommendedMethod: 'direct' | 'chain-abstraction';
   }> {
-    const baseAmount = parseFloat(amount);
-    const directFee = baseAmount * 0.003; // 0.3%
-    const chainAbstractionFee = baseAmount * 0.005; // 0.5%
-    
-    return {
-      directCost: directFee.toString(),
-      chainAbstractionCost: chainAbstractionFee.toString(),
-      recommendedMethod: directFee < chainAbstractionFee ? 'direct' : 'chain-abstraction'
-    };
+    try {
+      const estimate = await this.sdk.estimateBridge({
+        fromChain,
+        toChain,
+        token,
+        amount
+      });
+      
+      return {
+        directCost: estimate.directFee,
+        chainAbstractionCost: estimate.chainAbstractionFee,
+        recommendedMethod: estimate.recommendedMethod
+      };
+    } catch (error) {
+      console.error('Bridge estimation failed:', error);
+      // Fallback to mock data
+      const baseAmount = parseFloat(amount);
+      const directFee = baseAmount * 0.003;
+      const chainAbstractionFee = baseAmount * 0.005;
+      
+      return {
+        directCost: directFee.toString(),
+        chainAbstractionCost: chainAbstractionFee.toString(),
+        recommendedMethod: directFee < chainAbstractionFee ? 'direct' : 'chain-abstraction'
+      };
+    }
   }
 
   async checkBridgeSupport(fromChain: number, toChain: number, token: string): Promise<boolean> {

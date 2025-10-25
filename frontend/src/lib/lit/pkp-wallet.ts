@@ -21,19 +21,21 @@ export class PKPWalletManager {
   async createWallet(config: PKPWalletConfig): Promise<PKPEthersWallet> {
     await litClient.connect();
     
+    // Use official PKPEthersWallet initialization from documentation
     const wallet = new PKPEthersWallet({
       litNodeClient: litClient.getClient(),
       pkpPubKey: config.pkpPublicKey,
       authMethods: config.authMethods,
-      rpc: config.rpc
+      rpc: config.rpc || 'https://eth.llamarpc.com'
     });
 
+    // Initialize wallet according to official docs
     await wallet.init();
     
     this.wallets.set(config.pkpPublicKey, wallet);
     this.activeWallet = wallet;
     
-    console.log('PKP Wallet created:', wallet.address);
+    console.log('PKP Wallet created with address:', wallet.address);
     return wallet;
   }
 
