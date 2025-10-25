@@ -107,18 +107,20 @@ sdk.setOnAllowanceHook(({ allow, deny, sources }) => {
 - `/components/BridgeDashboard.tsx` - Complete bridge interface ✅
 - `/hooks/useBridgeProgress.ts` - Progress tracking hooks ✅
 
-### Task 2.3: Nexus Widgets Integration
+### Task 2.3: Nexus Widgets Integration ✅
 **Reference:** [Nexus Widgets API](https://docs.availproject.org/nexus/avail-nexus-sdk/examples/nexus-widgets/api-reference)
 
-- [ ] Integrate pre-built UI components for balance display
-- [ ] Implement bridge interface widgets
-- [ ] Customize widget styling to match app design
-- [ ] Add responsive design for mobile compatibility
+- [x] Integrate pre-built UI components for balance display
+- [x] Implement bridge interface widgets
+- [x] Customize widget styling to match app design
+- [x] Add responsive design for mobile compatibility
 
 **Implementation Files:**
-- `/components/nexus/BalanceWidget.tsx`
-- `/components/nexus/BridgeWidget.tsx`
-- `/styles/nexus-widgets.css`
+- `/components/nexus/BalanceWidget.tsx` ✅
+- `/components/nexus/BridgeWidget.tsx` ✅
+- `/components/nexus/NexusWidgetProvider.tsx` ✅
+- `/components/nexus/index.ts` ✅
+- `/styles/nexus-widgets.css` ✅
 
 ---
 

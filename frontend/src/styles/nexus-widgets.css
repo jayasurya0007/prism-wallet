@@ -1,0 +1,193 @@
+/* Nexus Widgets Styling */
+
+.nexus-widget {
+  @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.nexus-widget-compact {
+  @apply p-4;
+}
+
+.nexus-widget:not(.nexus-widget-compact) {
+  @apply p-6;
+}
+
+/* Widget Header */
+.nexus-widget-header {
+  @apply flex items-center justify-between mb-4 pb-3 border-b border-gray-100;
+}
+
+.nexus-widget-header h3 {
+  @apply text-lg font-semibold text-gray-900 m-0;
+}
+
+.nexus-refresh-btn {
+  @apply w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors cursor-pointer border-0;
+  font-size: 16px;
+}
+
+/* Balance Widget */
+.nexus-balance-list {
+  @apply space-y-3;
+}
+
+.nexus-balance-item {
+  @apply flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors;
+}
+
+.nexus-token-info {
+  @apply flex items-center space-x-3;
+}
+
+.nexus-token-icon,
+.nexus-chain-icon {
+  @apply w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm;
+}
+
+.nexus-token-symbol {
+  @apply font-semibold text-gray-900;
+}
+
+.nexus-token-chains,
+.nexus-chain-name {
+  @apply text-sm text-gray-500;
+}
+
+.nexus-balance-amount {
+  @apply text-right;
+}
+
+.nexus-balance-value {
+  @apply font-semibold text-gray-900;
+}
+
+.nexus-balance-usd {
+  @apply text-sm text-gray-500;
+}
+
+.nexus-empty-state {
+  @apply text-center py-8 text-gray-500;
+}
+
+/* Bridge Widget */
+.nexus-bridge-widget {
+  @apply min-w-0;
+}
+
+.nexus-bridge-form {
+  @apply space-y-4;
+}
+
+.nexus-form-row {
+  @apply flex items-end gap-3;
+}
+
+.nexus-form-group {
+  @apply flex-1 min-w-0;
+}
+
+.nexus-form-group-flex {
+  @apply flex-[2];
+}
+
+.nexus-form-group label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.nexus-select,
+.nexus-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors;
+}
+
+.nexus-bridge-arrow {
+  @apply text-2xl text-gray-400 pb-2 flex-shrink-0;
+}
+
+.nexus-btn {
+  @apply w-full px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 cursor-pointer;
+}
+
+.nexus-btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.nexus-btn-success {
+  @apply bg-green-600 text-white hover:bg-green-700;
+}
+
+.nexus-error {
+  @apply p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm;
+}
+
+/* Simulation Results */
+.nexus-simulation-result {
+  @apply mt-4 pt-4 border-t border-gray-200 space-y-4;
+}
+
+.nexus-simulation-header h4 {
+  @apply font-semibold text-gray-900 m-0;
+}
+
+.nexus-simulation-details {
+  @apply space-y-2;
+}
+
+.nexus-detail-row {
+  @apply flex justify-between items-center text-sm;
+}
+
+.nexus-detail-row span:first-child {
+  @apply text-gray-600;
+}
+
+.nexus-detail-row span:last-child {
+  @apply font-medium text-gray-900;
+}
+
+.nexus-method {
+  @apply px-2 py-1 rounded text-xs font-medium;
+}
+
+.nexus-method.direct {
+  @apply bg-green-100 text-green-800;
+}
+
+.nexus-method.chain-abstraction {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.nexus-route {
+  @apply p-3 bg-gray-50 rounded-lg;
+}
+
+.nexus-route-label {
+  @apply text-sm font-medium text-gray-700 mb-1;
+}
+
+.nexus-route-path {
+  @apply text-sm text-gray-600;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .nexus-widget {
+    @apply p-4;
+  }
+  
+  .nexus-form-row {
+    @apply flex-col gap-3;
+  }
+  
+  .nexus-bridge-arrow {
+    @apply rotate-90 py-0;
+  }
+  
+  .nexus-balance-item {
+    @apply flex-col items-start space-y-2;
+  }
+  
+  .nexus-balance-amount {
+    @apply text-left w-full;
+  }
+}
