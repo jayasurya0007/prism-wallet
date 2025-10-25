@@ -124,6 +124,36 @@ export class NexusClient {
     // Placeholder for price fetching
     return 0;
   }
+
+  async estimateBridgeCost(fromChain: number, toChain: number, token: string, amount: string): Promise<{
+    directCost: string;
+    chainAbstractionCost: string;
+    recommendedMethod: 'direct' | 'chain-abstraction';
+  }> {
+    const baseAmount = parseFloat(amount);
+    const directFee = baseAmount * 0.003; // 0.3%
+    const chainAbstractionFee = baseAmount * 0.005; // 0.5%
+    
+    return {
+      directCost: directFee.toString(),
+      chainAbstractionCost: chainAbstractionFee.toString(),
+      recommendedMethod: directFee < chainAbstractionFee ? 'direct' : 'chain-abstraction'
+    };
+  }
+
+  async checkBridgeSupport(fromChain: number, toChain: number, token: string): Promise<boolean> {
+    // Check if bridge is supported between chains for specific token
+    const supportedPairs = [
+      [1, 137], [1, 42161], [1, 10], [1, 8453], // Ethereum to L2s
+      [137, 42161], [137, 10], [137, 8453], // Polygon to L2s
+      [42161, 10], [42161, 8453], // Arbitrum to other L2s
+      [10, 8453] // Optimism to Base
+    ];
+    
+    return supportedPairs.some(([from, to]) => 
+      (from === fromChain && to === toChain) || (from === toChain && to === fromChain)
+    );
+  }
 }
 
 export const nexusClient = new NexusClient();

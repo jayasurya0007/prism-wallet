@@ -36,6 +36,7 @@ export interface NexusClient {
 }
 
 export interface BridgeSimulation {
+  id: string;
   fromChain: number;
   toChain: number;
   token: string;
@@ -43,6 +44,9 @@ export interface BridgeSimulation {
   estimatedFees: string;
   estimatedTime: number;
   route: string[];
+  directCost: string;
+  chainAbstractionCost: string;
+  recommendedMethod: 'direct' | 'chain-abstraction';
 }
 
 export interface BridgeIntent {
@@ -50,4 +54,27 @@ export interface BridgeIntent {
   simulation: BridgeSimulation;
   status: 'pending' | 'approved' | 'denied' | 'executing' | 'completed' | 'failed';
   createdAt: Date;
+  approvedAt?: Date;
+  completedAt?: Date;
+  txHash?: string;
+  error?: string;
+}
+
+export interface AllowanceRequest {
+  token: string;
+  spender: string;
+  amount: string;
+  chainId: number;
+  type: 'min' | 'max' | 'exact';
+}
+
+export interface BridgeProgress {
+  intentId: string;
+  status: 'simulating' | 'approving' | 'executing' | 'confirming' | 'completed' | 'failed';
+  currentStep: number;
+  totalSteps: number;
+  txHash?: string;
+  blockNumber?: number;
+  confirmations: number;
+  requiredConfirmations: number;
 }
