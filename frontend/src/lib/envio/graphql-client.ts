@@ -2,6 +2,13 @@
 // Reference: https://docs.envio.dev/docs/HyperIndex/getting-started
 
 import { GraphQLClient } from 'graphql-request';
+import { 
+  HIGH_VALUE_TRANSFERS,
+  WALLET_ACTIVITY,
+  RECENT_TRANSFERS,
+  PORTFOLIO_SUMMARY,
+  TRANSFER_SUBSCRIPTION
+} from './queries';
 import type { 
   Transfer, 
   HighValueTransfer, 
@@ -26,91 +33,20 @@ export class EnvioGraphQLClient {
   }
 
   // Query high-value transfers for AI agent monitoring
-  async getHighValueTransfers(chainId?: number, limit: number = 100): Promise<EnvioQueryResponse<{ HighValueTransfer: HighValueTransfer[] }>> {
-    const query = `
-      query GetHighValueTransfers($chainId: Int, $limit: Int!) {
-        HighValueTransfer(
-          where: ${chainId ? '{ chainId: { _eq: $chainId } }' : '{}'}
-          order_by: { timestamp: desc }
-          limit: $limit
-        ) {
-          id
-          chainId
-          token
-          from
-          to
-          amount
-          usdValue
-          blockNumber
-          transactionHash
-          timestamp
-          flagged
-        }
-      }
-    `;
-
-    return await this.client.request(query, { chainId, limit });
+  async getHighValueTransfers(chainId?: number, limit: number = 100): Promise<EnvioQueryResponse<{ Transfer: Transfer[] }>> {
+    const minAmount = (10000 * 1e6).toString(); // $10k in USDC
+    return await this.client.request(HIGH_VALUE_TRANSFERS, { chainId, minAmount, limit });
   }
 
   // Query wallet activity for portfolio analysis
-  async getWalletActivity(address: string, chainIds?: number[]): Promise<EnvioQueryResponse<{ Transfer: Transfer[] }>> {
-    const query = `
-      query GetWalletActivity($address: String!, $chainIds: [Int!]) {
-        Transfer(
-          where: {
-            _or: [
-              { from: { _eq: $address } }
-              { to: { _eq: $address } }
-            ]
-            ${chainIds ? 'chainId: { _in: $chainIds }' : ''}
-          }
-          order_by: { timestamp: desc }
-          limit: 1000
-        ) {
-          id
-          chainId
-          token
-          from
-          to
-          amount
-          blockNumber
-          transactionHash
-          timestamp
-        }
-      }
-    `;
-
-    return await this.client.request(query, { address, chainIds });
+  async getWalletActivity(address: string, chainIds: number[] = [1, 137, 42161]): Promise<EnvioQueryResponse<{ Transfer: Transfer[] }>> {
+    return await this.client.request(WALLET_ACTIVITY, { address, chainIds, limit: 1000 });
   }
 
   // Query recent transfers for real-time monitoring
-  async getRecentTransfers(minutes: number = 60, chainId?: number) {
+  async getRecentTransfers(minutes: number = 60, chainIds: number[] = [1, 137, 42161]) {
     const timestampThreshold = Math.floor(Date.now() / 1000) - (minutes * 60);
-    
-    const query = `
-      query GetRecentTransfers($timestamp: Int!, $chainId: Int) {
-        Transfer(
-          where: {
-            timestamp: { _gte: $timestamp }
-            ${chainId ? 'chainId: { _eq: $chainId }' : ''}
-          }
-          order_by: { timestamp: desc }
-          limit: 500
-        ) {
-          id
-          chainId
-          token
-          from
-          to
-          amount
-          blockNumber
-          transactionHash
-          timestamp
-        }
-      }
-    `;
-
-    return await this.client.request(query, { timestamp: timestampThreshold, chainId });
+    return await this.client.request(RECENT_TRANSFERS, { timestamp: timestampThreshold, chainIds, limit: 500 });
   }
 
   // Query gas prices for optimization

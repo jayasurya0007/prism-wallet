@@ -2,13 +2,9 @@ import { Transfer } from "../generated/src/Types.gen";
 
 export async function handleTransfer(event: Transfer) {
   const { from, to, value } = event.params;
+  const usdValue = calculateUSDValue(value, event.chainId);
   
-  // Log high-value transfers
-  if (BigInt(value) > BigInt(10000 * 10**6)) { // $10k+ USDC
-    console.log(`High-value transfer: ${value} from ${from} to ${to}`);
-  }
-  
-  // Store transfer data
+  // Store all transfers
   const transfer = {
     id: event.transactionHash + "-" + event.logIndex,
     from,
@@ -19,5 +15,32 @@ export async function handleTransfer(event: Transfer) {
     chainId: event.chainId
   };
   
-  // Save to database (Envio handles this automatically)
+  // Flag high-value transfers for AI monitoring
+  if (usdValue > 10000) {
+    const highValueTransfer = {
+      ...transfer,
+      usdValue,
+      flagged: true,
+      token: 'USDC'
+    };
+    
+    console.log(`AI Alert [high_value_transfer]:`, highValueTransfer);
+  }
+  
+  // Update wallet activity metrics
+  console.log(`Wallet activity: ${from} -> ${to} on chain ${event.chainId}, value: $${usdValue}`);
+}
+
+function calculateUSDValue(value: string, chainId: number): number {
+  return parseFloat(value) / 1e6; // USDC 6 decimals
+}
+
+// Gas price monitoring handler
+export async function handleBlock(event: any) {
+  const gasPrice = event.block?.gasPrice || '0';
+  const gasPriceGwei = parseFloat(gasPrice) / 1e9;
+  
+  if (gasPriceGwei < 50) {
+    console.log(`AI Alert [optimal_gas]: Chain ${event.chainId} gas below 50 Gwei: ${gasPriceGwei}`);
+  }
 }

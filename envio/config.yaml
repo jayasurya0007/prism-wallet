@@ -17,3 +17,17 @@ contracts:
     handler: ./src/handlers.ts
     events:
       - event: Transfer(address indexed from, address indexed to, uint256 value)
+  - name: USDC_Polygon
+    abi_file_path: ./abis/erc20.json
+    address:
+      - address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+    handler: ./src/handlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 value)
+  - name: USDC_Arbitrum
+    abi_file_path: ./abis/erc20.json
+    address:
+      - address: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+    handler: ./src/handlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 value)
