@@ -21,7 +21,7 @@
 .DS_Store
 *.pem
 
-tasks.md
+
 rules.md
 .amazonq
 .env.local
@@ -52,3 +52,8 @@ logs
 # Envio
 /envio/.envio/
 /envio/generated/
+tasks.md
+HACKATHON_SUBMISSION.md
+tasks.md
+tasks.md
+tasks.md
