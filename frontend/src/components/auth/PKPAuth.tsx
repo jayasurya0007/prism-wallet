@@ -6,7 +6,11 @@ import PolicyManager from '../lit/PolicyManager'
 import AuthMethodSelector from './AuthMethodSelector'
 import PermissionManager from './PermissionManager'
 
-export default function PKPAuth() {
+interface PKPAuthProps {
+  onAuthenticated?: (address: string) => void;
+}
+
+export default function PKPAuth({ onAuthenticated }: PKPAuthProps) {
   const {
     wallets,
     activeWallet,
@@ -156,7 +160,12 @@ export default function PKPAuth() {
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}
-                  onClick={() => setActiveWallet(wallet.publicKey)}
+                  onClick={() => {
+                    setActiveWallet(wallet.publicKey);
+                    if (onAuthenticated) {
+                      onAuthenticated(wallet.address);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div>

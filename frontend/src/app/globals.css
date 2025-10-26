@@ -4,20 +4,25 @@
 
 @layer base {
   html {
-    font-family: system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply antialiased;
   }
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+@layer utilities {
+  .touch-manipulation {
+    touch-action: manipulation;
   }
   
-  .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors;
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
   
-  .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
